@@ -816,9 +816,9 @@ public class Car {
             double PitRoadSpeedLimit = m_SIMPlugin.getSession().getTrack().getPitSpeedLimit(gauge.getUOM().getString()).getDouble();
 
             //double WayOverPitSpeed     = 1.10;
-            double WayOverPitSpeed     = (PitRoadSpeedLimit + (gauge.getUOM().equals("mph") ? 15.0 : 25.0)) / PitRoadSpeedLimit;
-            double OverPitSpeed        = (PitRoadSpeedLimit + (gauge.getUOM().equals("mph") ? 0.8  : 1.29)) / PitRoadSpeedLimit;
-            double PitSpeed            = (PitRoadSpeedLimit - (gauge.getUOM().equals("mph") ? 0.5  : 0.8))  / PitRoadSpeedLimit;
+            double WayOverPitSpeed     = (PitRoadSpeedLimit + (gauge.getUOM().equals("mph") ? 14.5 : 23.34)) / PitRoadSpeedLimit;
+            double OverPitSpeed        = (PitRoadSpeedLimit + (gauge.getUOM().equals("mph") ? 0.0  : 0.0)) / PitRoadSpeedLimit;
+            double PitSpeed            = (PitRoadSpeedLimit - (gauge.getUOM().equals("mph") ? 1.0  : 1.61))  / PitRoadSpeedLimit;
             double ApproachingPitSpeed = PitSpeed - (7*.012) - (7*.006);
 
             gauge._addStateRange("","WAYOVERLIMIT",     PitRoadSpeedLimit * WayOverPitSpeed,     Double.MAX_VALUE,                    gauge.getUOM().getString());
