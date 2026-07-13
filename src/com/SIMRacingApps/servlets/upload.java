@@ -80,9 +80,14 @@ public class upload extends HttpServlet {
         
         request.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, MULTI_PART_CONFIG);
         
+        response.setContentType("text/html");
+        out.println("<html><head><meta name=\"color-scheme\" content=\"light\"></head>"
+            + "<body style=\"background-color:#ffffff; color:#000000;\">");
+        
         final Part filePart = request.getPart("file");
         if (filePart == null) {
             out.println("No filename found in the uploaded data. Press BACK and choose a .sra File first.");
+            out.println("</body></html>");
             return;
         }
         
@@ -92,20 +97,19 @@ public class upload extends HttpServlet {
         
         String filename = getFileName(filePart);
         
-        response.setContentType("text/plain");
-        
         if (filename.isEmpty()) {
             out.println("No filename found in the uploaded data. Press BACK and choose a .sra File first.");
+            out.println("</body></html>");
             return;
         }
         
-        out.println("Please close this window and restart server.\r\n\r\n");
+        out.println("Please close this window and restart server.<br /><br />");
 
         Server.logger().info("Uploading: " + filename);
         File name = new File("");
         try {
             filecontent = filePart.getInputStream();
-            out.println("Processing: "+filename+"\r\n");
+            out.println("Processing: " + escapeHtml(filename) + "<br />");
             out.flush();
             
             ZipInputStream zip = new ZipInputStream(filecontent);
@@ -117,7 +121,7 @@ public class upload extends HttpServlet {
                 if (entryName.startsWith("/")                        //I don't think this is possible, but check it anyway
                 ||  entryName.equalsIgnoreCase("useroverrides.css")  //don't overwrite the user defined css file.
                 ) {
-                    out.println("Not Processed: " + entryName);
+                    out.println("Not Processed: " + escapeHtml(entryName) + "<br />");
                     Server.logger().info("Not Processed: " + entryName);
                 }
                 else {
@@ -129,7 +133,7 @@ public class upload extends HttpServlet {
                         int bytesRead;
                         String action = name.isFile() ? "Overwriting: " : "Creating   : ";
         
-                        out.println(action + name.getPath());
+                        out.println(action + escapeHtml(name.getPath()) + "<br />");
                         Server.logger().info(action + name.getPath());
                         
                         FileOutputStream fos = new FileOutputStream(name);
@@ -143,13 +147,20 @@ public class upload extends HttpServlet {
             zip.close();
         }
         catch (Exception e) {
-            out.println("Exception while extracing: " + name.getPath() + "\r\n" + e.getMessage());
+            out.println("Exception while extracing: " + escapeHtml(name.getPath()) + "<br />" + escapeHtml(e.getMessage()));
             Server.logger().severe("Exception while extracing: " + name.getPath() + "\r\n" + e.getMessage());
         }
         finally {
             if (filecontent != null)
                 filecontent.close();
+            out.println("</body></html>");
         }
+    }
+    private String escapeHtml(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
     }
     private String getFileName(final Part part) {
         final String partHeader = part.getHeader("content-disposition");

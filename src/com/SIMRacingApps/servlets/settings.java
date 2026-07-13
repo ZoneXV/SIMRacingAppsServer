@@ -117,6 +117,7 @@ public class settings extends HttpServlet {
 //outputFolder = "C:/temp";
         
         Server.logger().info("Saving settings to: " + dest.toString());
+        response.setContentType("text/html");
         ServletOutputStream out = response.getOutputStream();
         
         try {
@@ -153,7 +154,8 @@ public class settings extends HttpServlet {
         }
         
         out.println(
-              "<html><body>"
+              "<html><head><meta name=\"color-scheme\" content=\"light\"></head>"
+            + "<body style=\"background-color:#ffffff; color:#000000;\">"
             + dest.toString() 
             + " saved.<br />"
             + "You must restart the server for these to take effect.<br />"
