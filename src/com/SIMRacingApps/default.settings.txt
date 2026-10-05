@@ -116,6 +116,16 @@ level = INFO
 fuel-level-needed-buffer-laps = 1
 
 #####################################################################
+### This is a flat amount of fuel to add as a buffer on top of the
+### amount calculated to finish. Set the one that matches whatever
+### UOM you drive with (gallons or liters) - it is used automatically
+### based on your car's current unit; the two are NOT converted from
+### each other, so set both if you may switch units mid-session.
+#####################################################################
+fuel-level-needed-buffer-amount-gal = 0
+fuel-level-needed-buffer-amount-l = 0
+
+#####################################################################
 ### Allows REFERENCE car to follow the car the camera is focused on.
 #####################################################################
 reference-camera = y

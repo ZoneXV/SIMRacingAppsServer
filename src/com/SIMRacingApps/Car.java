@@ -32,6 +32,8 @@ public class Car {
 
     private static final int DEFAULT_LAPS_FUEL_MILAGE       = 0;    //zero means use worse lap, average means average
     private static final double FUELLEVELNEEDED_BUFFER_LAPS = 1.0;  //number of laps to add to the remaining laps as a buffer. TODO: GWC could generate the need to add 2 or more laps
+    private static final double FUELLEVELNEEDED_BUFFER_AMOUNT_GAL = 0.0;  //flat amount of fuel, in gallons, to add as a buffer. Used when the car's current UOM is imperial.
+    private static final double FUELLEVELNEEDED_BUFFER_AMOUNT_L   = 0.0;  //flat amount of fuel, in liters, to add as a buffer. Used when the car's current UOM is metric.
     protected SIMPlugin m_SIMPlugin                         = null;
     
     //just to make things a little easier, I will just make these protected instead of getters and setters
@@ -596,6 +598,12 @@ public class Car {
      * @param lapsToAverage (Optional) The number of laps to average. This is passed to {@link com.SIMRacingApps.Car#getFuelLevelPerLap}. Default 0.
      * @param laps          (Optional) The number of laps to calculate for. Defaults to remaining minus percentage of current lap completed.
      * @param UOM           (Optional) A unit of measure to return. Set to null or a blank string to use Car's UOM.
+     * 
+     * The setting "fuel-level-needed-buffer-laps" adds extra laps worth of fuel as a buffer (default 1.0).
+     * The settings "fuel-level-needed-buffer-amount-gal" and "fuel-level-needed-buffer-amount-l" each add a flat
+     * amount of fuel as an additional buffer (default 0.0 each). Whichever one matches the car's current live UOM
+     * (gallons for imperial, liters for metric) is the one that gets applied - they are NOT unit-converted from
+     * each other, so both should be set to the desired buffer if the driver may switch units mid-session.
      * @return The number of laps in a {@link com.SIMRacingApps.Data} container.
      */
     public Data getFuelLevelToFinish(int lapsToAverage,double laps, String UOM) {
@@ -626,7 +634,14 @@ public class Car {
             }
             
             if (lapsRemaining > 0.0 && fuelperlap.getDouble() > 0.0) {
-                double fueltoadd = (fuelperlap.getDouble() * (lapsRemaining + Server.getArg("fuel-level-needed-buffer-laps",FUELLEVELNEEDED_BUFFER_LAPS)));
+                String currentUOM = _getGauge(Gauge.Type.FUELLEVEL).getUOM().getString();
+
+                double bufferAmount = currentUOM.equalsIgnoreCase("l")
+                                    ? Server.getArg("fuel-level-needed-buffer-amount-l",   FUELLEVELNEEDED_BUFFER_AMOUNT_L)
+                                    : Server.getArg("fuel-level-needed-buffer-amount-gal", FUELLEVELNEEDED_BUFFER_AMOUNT_GAL);
+
+                double fueltoadd = (fuelperlap.getDouble() * (lapsRemaining + Server.getArg("fuel-level-needed-buffer-laps",FUELLEVELNEEDED_BUFFER_LAPS)))
+                                  + bufferAmount;
 
                 fuelneeded.setValue(fueltoadd > 0.0 ? fueltoadd : 0.0);
                 fuelneeded.setState(Data.State.NORMAL);

@@ -9,6 +9,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -661,6 +663,66 @@ public class Server {
         default_settings = null;
         if (settings != null) settings.close();
         settings = null;
+        
+        //check for newly added fuel-buffer settings that existing users may not have,
+        //and append them with their default values if missing, so they don't have to
+        //edit settings.txt manually after an update.
+        try {
+            FindFile existingSettings = new FindFile(Server.getArg("settings","settings.txt"));
+            File settingsFile = existingSettings.getFile();
+            existingSettings.close();
+
+            StringBuilder contentBuilder = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new FileReader(settingsFile))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    contentBuilder.append(line).append(System.lineSeparator());
+                }
+            }
+            String content = contentBuilder.toString();
+
+            StringBuilder additions = new StringBuilder();
+
+            if (!content.contains("fuel-level-needed-buffer-laps")) {
+                additions.append(System.lineSeparator());
+                additions.append("#####################################################################").append(System.lineSeparator());
+                additions.append("### This is the number of laps to add to the remaining laps used").append(System.lineSeparator());
+                additions.append("### when calculating the amount of fuel needed to finish. Use it").append(System.lineSeparator());
+                additions.append("### for Green/White/Checkered, or timed races.").append(System.lineSeparator());
+                additions.append("#####################################################################").append(System.lineSeparator());
+                additions.append("fuel-level-needed-buffer-laps = 1").append(System.lineSeparator());
+            }
+
+            if (!content.contains("fuel-level-needed-buffer-amount-gal")
+            ||  !content.contains("fuel-level-needed-buffer-amount-l")) {
+                additions.append(System.lineSeparator());
+                additions.append("#####################################################################").append(System.lineSeparator());
+                additions.append("### This is a flat amount of fuel to add as a buffer on top of the").append(System.lineSeparator());
+                additions.append("### amount calculated to finish. Set the one that matches whatever").append(System.lineSeparator());
+                additions.append("### UOM you drive with (gallons or liters) - it is used automatically").append(System.lineSeparator());
+                additions.append("### based on your car's current unit; the two are NOT converted from").append(System.lineSeparator());
+                additions.append("### each other, so set both if you may switch units mid-session.").append(System.lineSeparator());
+                additions.append("#####################################################################").append(System.lineSeparator());
+                if (!content.contains("fuel-level-needed-buffer-amount-gal"))
+                    additions.append("fuel-level-needed-buffer-amount-gal = 0").append(System.lineSeparator());
+                if (!content.contains("fuel-level-needed-buffer-amount-l"))
+                    additions.append("fuel-level-needed-buffer-amount-l = 0").append(System.lineSeparator());
+            }
+
+            if (additions.length() > 0) {
+                try (FileWriter writer = new FileWriter(settingsFile, true)) { //true = append
+                    writer.write(additions.toString());
+                }
+                Server.logger().info("Added missing fuel buffer settings to " + settingsFile.toString());
+            }
+        }
+        catch (FileNotFoundException e) {
+            //settings.txt doesn't exist at all - the block above already created a fresh copy
+            //of default.settings.txt, which already has these keys, so nothing to do here.
+        }
+        catch (IOException e) {
+            Server.logStackTrace(Level.WARNING, "Error checking/updating settings.txt for missing fuel buffer settings", e);
+        }
         
         parseArgs(args);
         
