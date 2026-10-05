@@ -53,6 +53,10 @@ public class Windows {
         boolean SendMessage(WinDef.HWND hWnd, int Msg, int wParam, int lParam);
         boolean BringWindowToTop(WinDef.HWND hWnd);
         boolean AllowSetForegroundWindow(WinDef.DWORD dwProcessId);
+
+        //https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-mapvirtualkeya
+        //uMapType 0 = MAPVK_VK_TO_VSC
+        int MapVirtualKey(int uCode, int uMapType);
     }
 
     /*Error Codes*/
@@ -170,9 +174,25 @@ public class Windows {
             return k;
         }
         
+        //VK_RETURN as used by KeyEventToWindows() for VK_ENTER.
+        //iRacing's chat box appears to accept plain ASCII text via WM_CHAR (used below for all
+        //other keys), but no longer treats WM_CHAR(0x0D) as an Enter/submit action. So ENTER is
+        //special-cased here to send a real WM_KEYDOWN/WM_KEYUP pair instead, which is what a
+        //genuine physical Enter keypress produces.
+        private static final int VK_RETURN_WIN = 0x0D;
+
         public void keyPress(int key) {
             if (key == KeyEvent.VK_SHIFT)
                 m_shift = true;
+            else if (key == KeyEvent.VK_ENTER) {
+                m_hWindow = User32.INSTANCE.FindWindow(null,m_windowName);
+                if (m_hWindow != null) {
+                    int scanCode = myUser32.instance.MapVirtualKey(VK_RETURN_WIN, 0 /*MAPVK_VK_TO_VSC*/);
+                    int lParam = 1 | ((scanCode & 0xFF) << 16); //bits 0-15 repeat count=1, bits 16-23 scan code
+                    Server.logger().finer("keyPress(ENTER) sending WM_KEYDOWN");
+                    User32.INSTANCE.PostMessage(m_hWindow, User32.WM_KEYDOWN, new WinNT.WPARAM(VK_RETURN_WIN), new WinNT.LPARAM(lParam));
+                }
+            }
             else {
                 m_hWindow = User32.INSTANCE.FindWindow(null,m_windowName);
                 WinNT.WPARAM k = new WinNT.WPARAM(KeyEventToWindows(key));
@@ -187,6 +207,15 @@ public class Windows {
         public void keyRelease(int key) {
             if (key == KeyEvent.VK_SHIFT)
                 m_shift = false;
+            else if (key == KeyEvent.VK_ENTER) {
+                m_hWindow = User32.INSTANCE.FindWindow(null,m_windowName);
+                if (m_hWindow != null) {
+                    int scanCode = myUser32.instance.MapVirtualKey(VK_RETURN_WIN, 0 /*MAPVK_VK_TO_VSC*/);
+                    int lParam = 1 | ((scanCode & 0xFF) << 16) | (1 << 30) | (1 << 31); //previous state=down, transition=up
+                    Server.logger().finer("keyRelease(ENTER) sending WM_KEYUP");
+                    User32.INSTANCE.PostMessage(m_hWindow, User32.WM_KEYUP, new WinNT.WPARAM(VK_RETURN_WIN), new WinNT.LPARAM(lParam));
+                }
+            }
             else {
                 return;
             }
